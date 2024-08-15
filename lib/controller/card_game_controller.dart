@@ -1,5 +1,3 @@
-// lib/controller/card_game_controller.dart
-
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../model/card_model.dart';
@@ -10,6 +8,7 @@ class CardGameController extends ChangeNotifier {
   int matchCount = 0;
   final Map<String, String> _matches = {};
   bool hasStarted = false;
+  bool animationsCompleted = false; // Animasyonların tamamlandığını izlemek için
 
   CardGameController() {
     _initializeGame();  // Başlangıçta tüm kartlar back_card ile başlar
@@ -17,6 +16,7 @@ class CardGameController extends ChangeNotifier {
 
   List<CardModel> get cards => _cards;
   List<int> get randomOrder => _randomOrder;
+  Map<String, String> get matches => _matches;
 
   void _initializeGame() {
     // Başlangıçta tüm kartlar back_card ile gösterilecek
@@ -32,7 +32,7 @@ class CardGameController extends ChangeNotifier {
     final random = Random();
     _randomOrder = List.generate(_cards.length, (index) => index)..shuffle(random);
 
-    // Kartları rastgele sırala
+    // Kartları rastgele sırala ve göster
     for (var i = 0; i < _cards.length; i++) {
       int newIndex = _randomOrder[i];
       _cards[i] = CardModel(
@@ -44,19 +44,28 @@ class CardGameController extends ChangeNotifier {
 
   void startGame() {
     hasStarted = true;
+    animationsCompleted = false; // Oyun başlarken animasyonlar tamamlanmadı
     _shuffleCards();
     matchCount = 0;
     _matches.clear();
-    _checkMatches();  // Eşleşmeleri kontrol et
     notifyListeners();
   }
 
   void resetGame() {
-    _initializeGame();  // Kartları tekrar back_card ile sıfırla
-    hasStarted = false; // Butonun yeniden görünmesini sağla
+    _shuffleCards();  // Kartları yeniden karıştır ve göster
+    hasStarted = true; // Oyun başladı
+    matchCount = 0; // Eşleşmeleri sıfırla
+    animationsCompleted = false; // Yeniden başlarken animasyonlar tamamlanmadı
+    notifyListeners();
   }
 
-  void _checkMatches() {
+  void completeAnimations() {
+    animationsCompleted = true;
+    checkMatches(); // Animasyonlar tamamlandığında eşleşmeleri kontrol et
+    notifyListeners();
+  }
+
+  void checkMatches() {  // Bu metodu public olarak değiştiriyoruz
     final horizontalMatches = {
       '1-2': '1-tac',
       '2-3': '2-kus',
@@ -117,18 +126,18 @@ class CardGameController extends ChangeNotifier {
         String key = '${_randomOrder[i] + 1}-${_randomOrder[i + 1] + 1}';
         if (horizontalMatches.containsKey(key)) {
           _matches[key] = horizontalMatches[key]!;
+          matchCount++;
         }
       }
       if (i < 18) {
         String key = '${_randomOrder[i] + 1}-${_randomOrder[i + 6] + 1}';
         if (verticalMatches.containsKey(key)) {
           _matches[key] = verticalMatches[key]!;
+          matchCount++;
         }
       }
     }
 
-    notifyListeners();
+    notifyListeners();  // Eşleşme kontrolü sonrası UI'yı güncelle
   }
-
-  Map<String, String> get matches => _matches;
 }
