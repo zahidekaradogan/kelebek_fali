@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../controller/card_game_controller.dart';
 
@@ -13,17 +12,29 @@ class CardGameView extends StatefulWidget {
 class _CardGameViewState extends State<CardGameView> with TickerProviderStateMixin {
   late List<AnimationController> _animationControllers;
   late List<Animation<double>> _animations;
+  late AnimationController _circleAnimationController;
+  late Animation<double> _circleAnimation;
   final List<GlobalKey> _cardKeys = List.generate(24, (index) => GlobalKey());
   final List<Offset> _cardPositions = List.generate(24, (index) => Offset.zero);
   final List<Size> _cardSizes = List.generate(24, (index) => Size.zero);
   final List<OverlayEntry> _overlayEntries = [];
-  bool _isFirstLoad = true;
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateCardPositions());
+    _initializeCircleAnimation();
+  }
+
+  void _initializeCircleAnimation() {
+    _circleAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true); // Animasyonun tekrar etmesini sağlar
+
+    _circleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _circleAnimationController, curve: Curves.easeInOut),
+    );
   }
 
   void _initializeAnimations() {
@@ -39,6 +50,8 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
         CurvedAnimation(parent: controller, curve: Curves.easeOut),
       );
     }).toList();
+
+    _startSequentialAnimations();
   }
 
   Future<void> _startSequentialAnimations() async {
@@ -46,10 +59,8 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
       await Future.delayed(const Duration(milliseconds: 300));
       _animationControllers[i].forward();
     }
-     WidgetsBinding.instance.addPostFrameCallback((_) {
-    _updateCardPositions();
-    context.read<CardGameController>().checkMatches(context); // Context parametresi eklendi
-  });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateCardPositions());
+    context.read<CardGameController>().checkMatches(context);
   }
 
   void _updateCardPositions() {
@@ -62,11 +73,7 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
         _cardSizes[i] = size;
       }
     }
-    if (!_isFirstLoad) {
-      _drawOverlayCircles();
-    } else {
-      _isFirstLoad = false;
-    }
+    _drawOverlayCircles();
   }
 
   void _drawOverlayCircles() {
@@ -95,11 +102,13 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
           child: SizedBox(
             width: 60,
             height: 60,
-            child: Lottie.asset(
-              'assets/lottie/lottie_circle_animation_8.json',
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
+            child: AnimatedBuilder(
+              animation: _circleAnimation,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: CirclePainter(center: Offset(30, 30), radius: 30, opacity: _circleAnimation.value),
+                );
+              },
             ),
           ),
         ),
@@ -117,7 +126,6 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
     _overlayEntries.clear();
 
     setState(() {
-      // Animasyon kontrolcülerini sıfırla
       for (var controller in _animationControllers) {
         controller.reset();
       }
@@ -129,6 +137,7 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
 
   @override
   void dispose() {
+    _circleAnimationController.dispose();
     for (var controller in _animationControllers) {
       controller.dispose();
     }
@@ -144,45 +153,43 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
 
     return Scaffold(
       appBar: AppBar(
-  elevation: 0,
-  backgroundColor: Colors.transparent,
-  titleSpacing: 0, // Başlık ve simge arasında boşluk bırakmamak için
-  title: Row(
-    mainAxisSize: MainAxisSize.min, // Sadece içerik kadar yer kaplaması için
-    children: [
-      Padding(
-        padding: const EdgeInsets.only(left: 16.0, top: 16.0, right: 0.0, bottom: 16.0),
-        child: Image.asset(
-          'assets/images/object/kelebek_fali_logo.png',
-          fit: BoxFit.contain,
-          height: 28, // İsteğe bağlı: Görselin boyutunu ayarlayabilirsiniz
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        titleSpacing: 0,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0, top: 16.0, right: 0.0, bottom: 16.0),
+              child: Image.asset(
+                'assets/images/object/kelebek_fali_logo.png',
+                fit: BoxFit.contain,
+                height: 28,
+              ),
+            ),
+            Text(
+              ' Kelebek Falı',
+              style: TextStyle(
+                color: Color(0xFFF74E67),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(
+              Icons.home,
+              size: 28,
+              color: const Color(0xFF13A79D),
+            ),
+            onPressed: () {
+              // Anasayfaya yönlendirme fonksiyonu
+            },
+          ),
+          const SizedBox(width: 16),
+        ],
       ),
-      Text(
-        ' Kelebek Falı',
-        style: TextStyle(
-          color: Color.fromRGBO(247, 78, 103, 1),
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ],
-  ),
-  actions: <Widget>[
-    IconButton(
-      icon: const Icon(
-        Icons.home,
-        size: 28,
-        color: const Color(0xFF13A79D),
-      ),
-      onPressed: () {
-        // Anasayfaya yönlendirme fonksiyonu
-      },
-    ),
-    const SizedBox(width: 16),
-  ],
-),
-
-
       body: Column(
         children: [
           Expanded(
@@ -196,75 +203,83 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
                       right: 16.0,
                       top: 16.0,
                     ),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: 500,
-                      ),
-                      child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 6,
-                          mainAxisSpacing: 1.0,
-                          crossAxisSpacing: 1.0,
-                          childAspectRatio: 1,
-                        ),
-                        itemCount: 24,
-                        itemBuilder: (context, index) {
-                          final card = context.watch<CardGameController>().cards[index];
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        double gridItemWidth = constraints.maxWidth / 6;
+                        double gridItemHeight = gridItemWidth;
+                        double aspectRatio = gridItemWidth / gridItemHeight;
 
-                          return Stack(
-                            children: [
-                              if (controller.hasStarted) // Eğer oyun başladıysa animasyon kullan
-                                AnimatedBuilder(
-                                  animation: _animations[index],
-                                  builder: (context, child) {
-                                    return Transform.scale(
-                                      scale: _animations[index].value,
-                                      child: Container(
-                                        key: _cardKeys[index],
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(12.0),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(0.60),
-                                              spreadRadius: 1,
-                                              blurRadius: 8,
-                                              offset: const Offset(10, 10),
+                        return ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: 500,
+                          ),
+                          child: GridView.builder(
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              mainAxisSpacing: 1.0,
+                              crossAxisSpacing: 1.0,
+                              childAspectRatio: aspectRatio,
+                            ),
+                            itemCount: 24,
+                            itemBuilder: (context, index) {
+                              final card = context.watch<CardGameController>().cards[index];
+
+                              return Stack(
+                                children: [
+                                  if (controller.hasStarted)
+                                    AnimatedBuilder(
+                                      animation: _animations[index],
+                                      builder: (context, child) {
+                                        return Transform.scale(
+                                          scale: _animations[index].value,
+                                          child: Container(
+                                            key: _cardKeys[index],
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(12.0),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.60),
+                                                  spreadRadius: 1,
+                                                  blurRadius: 8,
+                                                  offset: const Offset(10, 10),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(12.0),
-                                          child: Image.asset(card.imagePath, fit: BoxFit.cover),
-                                        ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(12.0),
+                                              child: Image.asset(card.imagePath, fit: BoxFit.cover),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  else
+                                    Container(
+                                      key: _cardKeys[index],
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12.0),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.60),
+                                            spreadRadius: 1,
+                                            blurRadius: 8,
+                                            offset: const Offset(10, 10),
+                                          ),
+                                        ],
                                       ),
-                                    );
-                                  },
-                                )
-                              else // İlk yükleme sırasında animasyon olmadan doğrudan göster
-                                Container(
-                                  key: _cardKeys[index],
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12.0),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.60),
-                                        spreadRadius: 1,
-                                        blurRadius: 8,
-                                        offset: const Offset(10, 10),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12.0),
+                                        child: Image.asset(card.imagePath, fit: BoxFit.cover),
                                       ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12.0),
-                                    child: Image.asset(card.imagePath, fit: BoxFit.cover),
-                                  ),
-                                ),
-                            ],
-                          );
-                        },
-                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -394,5 +409,28 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
         ],
       ),
     );
+  }
+}
+
+class CirclePainter extends CustomPainter {
+  final Offset center;
+  final double radius;
+  final double opacity;
+
+  CirclePainter({required this.center, required this.radius, required this.opacity});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Color(0xFFF74E67).withOpacity(opacity) // Opaklığı ayarlıyoruz
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.0;
+
+    canvas.drawCircle(center, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(CirclePainter oldDelegate) {
+    return oldDelegate.opacity != opacity || oldDelegate.radius != radius;
   }
 }

@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => CardGameController(),
-      child: const MaterialApp(
+      child: MaterialApp(
         home: CardGameView(),
       ),
     );
