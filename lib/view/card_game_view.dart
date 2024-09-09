@@ -326,12 +326,12 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
           if (controller.hasStarted)
             Container(
               color: Colors.transparent,
-              padding: const EdgeInsets.only(left: 16, right: 16),
+              padding: const EdgeInsets.only(left: 16, right: 0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    //crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Eşleşen Kart Sayısı: ${context.watch<CardGameController>().matchCount}',
@@ -342,6 +342,7 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
                       ),
                     ],
                   ),
+                  SizedBox(width: 8),
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(
@@ -355,10 +356,10 @@ class _CardGameViewState extends State<CardGameView> with TickerProviderStateMix
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          //mainAxisAlignment: MainAxisAlignment.start,
                           children: const [
                             Icon(Icons.refresh),
-                            SizedBox(width: 8),
+                            SizedBox(width: 2),
                             Text(
                               'Kartları Yeniden Aç',
                               style: TextStyle(
